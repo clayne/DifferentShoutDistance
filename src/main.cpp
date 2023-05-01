@@ -45,11 +45,70 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Query(const SKSE::QueryInterface* a
 	return true;
 }
 
+class SetNewTypeHook
+{
+public:
+	static void Hook()
+	{
+		_Usage1 = SKSE::GetTrampoline().write_call<5>(REL::ID(13629).address() + 0x130,
+			CreateProjectile_14074B170_1);  // SkyrimSE.exe+16CDD0 -- placeatme
+		_Usage2 = SKSE::GetTrampoline().write_call<5>(REL::ID(17693).address() + 0xe82,
+			CreateProjectile_14074B170_2);  // SkyrimSE.exe+2360C2 -- TESObjectWEAP::Fire_140235240
+		_Usage3 = SKSE::GetTrampoline().write_call<5>(REL::ID(33672).address() + 0x377,
+			CreateProjectile_14074B170_3);  // SkyrimSE.exe+550A37 -- ActorMagicCaster::castProjectile
+		_Usage4 = SKSE::GetTrampoline().write_call<5>(REL::ID(35450).address() + 0x20e,
+			CreateProjectile_14074B170_4);  // SkyrimSE.exe+5A897E -- ChainExplosion
+	}
+
+private:
+	static void set_custom_type(uint32_t handle)
+	{
+		RE::TESObjectREFRPtr _refr;
+		RE::LookupReferenceByHandle(handle, _refr);
+		if (auto proj = _refr.get() ? _refr.get()->As<RE::Projectile>() : nullptr) {
+			//logger::info("{}", proj->range);
+			proj->range = 500;
+		}
+	}
+
+	static uint32_t* CreateProjectile_14074B170_1(uint32_t* handle, void* ldata)
+	{
+		handle = _Usage1(handle, ldata);
+		set_custom_type(*handle);
+		return handle;
+	}
+	static uint32_t* CreateProjectile_14074B170_2(uint32_t* handle, void* ldata)
+	{
+		handle = _Usage2(handle, ldata);
+		set_custom_type(*handle);
+		return handle;
+	}
+	static uint32_t* CreateProjectile_14074B170_3(uint32_t* handle, void* ldata)
+	{
+		handle = _Usage3(handle, ldata);
+		set_custom_type(*handle);
+		return handle;
+	}
+	static uint32_t* CreateProjectile_14074B170_4(uint32_t* handle, void* ldata)
+	{
+		handle = _Usage4(handle, ldata);
+		set_custom_type(*handle);
+		return handle;
+	}
+
+	using func_type = decltype(CreateProjectile_14074B170_1);
+
+	static inline REL::Relocation<func_type> _Usage1;
+	static inline REL::Relocation<func_type> _Usage2;
+	static inline REL::Relocation<func_type> _Usage3;
+	static inline REL::Relocation<func_type> _Usage4;
+};
+
 static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message)
 {
 	switch (message->type) {
 	case SKSE::MessagingInterface::kDataLoaded:
-		//
+		SetNewTypeHook::Hook();
 
 		break;
 	}
