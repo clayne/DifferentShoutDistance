@@ -46,7 +46,7 @@ extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Query(const SKSE::QueryInterface* a
 }
 
 // change it to 0 or 1 to toggle drawing
-#define DRAW 0
+#define DRAW 1
 
 // TODO: think of it
 const float WIDTH = 100;
@@ -179,8 +179,7 @@ private:
 	// Slow updating 2
 	static void UpdateSelectedDownwardPass(RE::BSFadeNode* node, RE::NiUpdateData& data, std::uint32_t a_arg2)
 	{
-		if (auto owner = node->GetUserData();
-			owner && owner->As<RE::Projectile>() && owner->As<RE::Projectile>()->formType == RE::FormType::ProjectileCone) {
+		if (auto owner = node->GetUserData(); owner && owner->formType == RE::FormType::ProjectileCone) {
 			data.time /= K;
 		}
 
@@ -208,11 +207,34 @@ private:
 };
 #endif  // DRAW
 
+class TestHook
+{
+public:
+	static void Hook()
+	{
+		_sub_140265990 = SKSE::GetTrampoline().write_call<5>(REL::ID(42638).address() + 0xed,
+			sub_140265990);  // SkyrimSE.exe+736a9d
+	}
+
+private:
+	static char sub_140265990(RE::TESObjectCELL* cell, RE::NiPoint3* pos, float* Z)
+	{
+		auto ans = _sub_140265990(cell, pos, Z);
+		auto pos1 = *pos;
+		pos1.z = *Z;
+		draw_line<Colors::RED>(*pos, pos1);
+		return ans;
+	}
+
+	static inline REL::Relocation<decltype(sub_140265990)> _sub_140265990;
+};
+
 static void SKSEMessageHandler(SKSE::MessagingInterface::Message* message)
 {
 	switch (message->type) {
 	case SKSE::MessagingInterface::kDataLoaded:
 		LongerShoutsHook::Hook();
+		TestHook::Hook();
 
 #if DRAW
 		DebugAPIHook::Hook();
